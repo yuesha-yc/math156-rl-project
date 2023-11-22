@@ -26,13 +26,12 @@ def get_valid_next(current,N):
 # Given N, generate a maze of size N x N
 # return a numpy array of size N x N
 def gen_polygonal_path_maze(N,num_paths):
-    maze = np.zeros((N,N))
-    maze[0,0] = -1 # start
-    maze[N-1,N-1] = 2 # end
+    maze = np.ones((N,N))
+    maze[0,0] = 0 # start
+    maze[N-1,N-1] = 1 # end
 
-    # valid path: 1
-    # invalid path 0
-    # obstacles: 3
+    # valid path: 0
+    # invalid path -1
 
     # generate a path from start to end
     for i in range(num_paths):
@@ -41,7 +40,7 @@ def gen_polygonal_path_maze(N,num_paths):
             next = get_valid_next(current,N)
             if next == (N-1,N-1):
                 break
-            maze[next] = 1
+            maze[next] = 0
             current = next
 
     return maze
@@ -52,12 +51,10 @@ def add_obstacles(maze):
     # add obstacles to where there is no path
     for i in range(N):
         for j in range(N):
-            if maze[i,j] == 0:
-                maze[i,j] = random.choice([0,3])
-    for i in range(N):
-        for j in range(N):
-            if maze[i,j] == 0:
-                maze[i,j] = 1
+            if maze[i,j] == 1:
+                if i == N-1 and j == N-1:
+                    continue
+                maze[i,j] = random.choice([0,-1])
     return maze
 
 
@@ -71,7 +68,7 @@ def visualize_maze(maze):
 if __name__ == "__main__":
     N = 10
     maze = gen_polygonal_path_maze(N,1)
-    for i in range(10):
+    for i in range(3):
         new_maze = maze.copy()
         new_maze = add_obstacles(new_maze)
         plt.imshow(new_maze)

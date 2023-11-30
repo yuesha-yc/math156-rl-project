@@ -5,7 +5,7 @@ import time
 from PIL import Image
 import pdb
 import matplotlib.pyplot as plt 
-
+from visualize_path import visualize_path
 
 """
 - states
@@ -210,7 +210,9 @@ def test(q, test_maze, appendix=""):
         a_idx = np.argmax(q.q[s])
         all_actions.append(a_idx)
         final_score += m.do_a_move(m.all_acitons[a_idx])
-
+    
+    #visualize_path(m, all_states)
+    
     # Print results
     print(f"Final Score: {final_score}")
     print(f"Path taken: {all_states}")
@@ -218,7 +220,8 @@ def test(q, test_maze, appendix=""):
     
     # Visualize Maze
     print("Finished Maze:")
-    finished_maze = m.visualize()
+    #finished_maze = m.visualize()
+    finished_maze = visualize_path(m, all_states)
     for state in all_states:
         finished_maze[state] = 5
     plt.imshow(finished_maze)

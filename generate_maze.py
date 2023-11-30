@@ -1,6 +1,8 @@
 import numpy as np
 import random
 import matplotlib.pyplot as plt 
+import pdb
+import time
 
 # I want to generate maze
 # 1. Start from left top corner
@@ -46,16 +48,18 @@ def gen_polygonal_path_maze(N,num_paths):
     return maze
 
 
-def add_obstacles(maze):
+def add_random_obstacles(maze):
     N = maze.shape[0]
+    # Create a copy of the maze to modify
+    modified_maze = maze.copy()
     # add obstacles to where there is no path
     for i in range(N):
         for j in range(N):
-            if maze[i,j] == 1:
-                if i == N-1 and j == N-1:
+            if modified_maze[i,j] == 1:
+                if i==N-1 and j==N-1:
                     continue
-                maze[i,j] = random.choice([0,-1])
-    return maze
+                modified_maze[i,j] = random.choice([0,-1])
+    return modified_maze
 
 
 def visualize_maze(maze):
@@ -63,6 +67,7 @@ def visualize_maze(maze):
     plt.show()
     # save to file
     plt.savefig("maze.png")
+    plt.close()
 
 
 if __name__ == "__main__":

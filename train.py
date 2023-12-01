@@ -227,8 +227,8 @@ def test(q, test_maze, appendix=""):
     plt.close()
 
 
-def train_single_maze():
-    basic_path_maze = gen_polygonal_path_maze(10,1)
+def train_single_maze(maze_size, path_num):
+    basic_path_maze = gen_polygonal_path_maze(maze_size, path_num)
     obstacle_maze = add_random_obstacles(basic_path_maze)
     print("Initial Maze:")
     Maze(obstacle_maze).visualize()
@@ -236,8 +236,8 @@ def train_single_maze():
     train(q, obstacle_maze, N_epoch=100)
 
 
-def train_generalized_maze(train_size = 10, test_size = 3):
-    basic_path_maze = gen_polygonal_path_maze(10,1)
+def train_generalized_maze(maze_size, path_num, train_size = 10, test_size = 3):
+    basic_path_maze = gen_polygonal_path_maze(maze_size, path_num)
 
     plt.imshow(basic_path_maze)
     plt.savefig(f"maze_finished_initial.png")
@@ -252,7 +252,7 @@ def train_generalized_maze(train_size = 10, test_size = 3):
         obstacle_maze_test = add_random_obstacles(basic_path_maze)
         testing_mazes.append(obstacle_maze_test)
 
-    q = QLearning(100, 4)
+    q = QLearning(maze_size**2, 4)
     for i, training_maze in enumerate(training_mazes):
         train(q, training_maze, N_epoch=100, appendix=f"train_{i}")
     
@@ -262,4 +262,4 @@ def train_generalized_maze(train_size = 10, test_size = 3):
 
 
 if __name__ == '__main__':
-    train_generalized_maze(train_size=10,test_size=10)
+    train_generalized_maze(20, 2, train_size=10, test_size=10)

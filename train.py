@@ -5,7 +5,8 @@ import time
 from PIL import Image
 import pdb
 import matplotlib.pyplot as plt 
-from visualize_path import visualize_path
+from visualize_path import visualize_maze, visualize_path
+import math
 
 """
 - states
@@ -97,10 +98,13 @@ class Maze:
         return [(m, ii) for ii, m in enumerate(moves) if self.is_valid_new_agent(m)]
 
     def do_a_move(self, a):
-        assert self.is_valid_new_agent(a), "Mousy can't go there"
+        if not self.is_valid_new_agent(a):
+            assert self.is_valid_new_agent(a), "Mousy can't go there"
+            print(f"Moving to {a.loc}")
+
         self.mousy = a
         if self.has_won():
-            return 10   # reward for terminal
+            return 100   # reward for terminal
         elif self.agent_trape(a):
             return -0.3 # penalty for trap
         else:
@@ -118,62 +122,16 @@ class Maze:
         print(e)
         return e
 
-# def make_test_maze():
-#     m = Maze()
-#     e = m.env
-#     e[-1, -1] = 1
-#     e[0, 1:3] = -1
-#     e[1, 2:] = -1
-#     e[3, 0:2] = -1
-#     return m
-
-# def update_q(times, q):
-    
-#     for i in range(times):
-#         final_score = 0
-#         m = make_test_maze()
-#         while not m.has_won():
-#             moves = m.compute_possible_moves()
-#             random.shuffle(moves)
-#             move, move_idx = moves[0]
-
-#             at = move_idx
-#             st = m.state_for_agent(m.mousy)
-
-#             score = m.do_a_move(move)
-#             final_score += score
-#             rt = score
-
-#             st1 = m.state_for_agent(m.mousy)
-
-#             q.update(st, at, rt, st1)
-#     return q
-
-# def use_q(q):
-#     m = make_test_maze()
-#     final_score = 0
-#     while not m.has_won():
-#         time.sleep(0.1)
-#         s = m.state_for_agent(m.mousy)
-#         a_idx = np.argmax(q.q[s])
-#         final_score += m.do_a_move(m.all_acitons[a_idx])
-#     return final_score
-
-
-# def main():
-#     q = QLearning(10000, 4)
-#     for i in range(100, 1000):
-#         q = update_q(i, q)
-#         print(use_q(q))
-
    
 from generate_maze import *
 
-def train(q, new_maze, N_epoch = 100, appendix=""):
+def train(q, new_maze, N_epoch = 100, appendix="", maze_name="maze_with_obstacles.png"):
+
+    visualize_maze(new_maze, maze_name[:-4] + f"_with_obstacles.png")
+
     for i in range(N_epoch):
         final_score = 0
         m = Maze(new_maze)
-        # print(m.visualize())
         while not m.has_won():
             moves = m.compute_possible_moves()
             random.shuffle(moves)
@@ -193,7 +151,7 @@ def train(q, new_maze, N_epoch = 100, appendix=""):
         # print(f"Final Score, epoch {i}: {final_score}")
 
     # test on training maze
-    print("Test on training maze:")
+    print(f"Test on training maze: {appendix}")
     test(q, new_maze, appendix)
 
 
@@ -207,44 +165,42 @@ def test(q, test_maze, appendix=""):
         time.sleep(0.1)
         s = m.state_for_agent(m.mousy)
         all_states.append((s//maze_size, s%maze_size))
+        possible_actions = m.compute_possible_moves()
+        q_vals = q.q[s]
+        for q_idx, q_val in enumerate(q_vals):
+            if q_idx not in [a_idx for _, a_idx in possible_actions]:
+                # print(f"q_idx {q_idx} not in possible actions {possible_actions}")
+                # print(f"q_vals {q_vals}")
+                # print(f"state {s}")
+                q_vals[q_idx] = -math.inf
         a_idx = np.argmax(q.q[s])
         all_actions.append(a_idx)
         final_score += m.do_a_move(m.all_acitons[a_idx])
-    
-    #visualize_path(m, all_states)
-    
+        
     # Print results
     print(f"Final Score: {final_score}")
-    print(f"Path taken: {all_states}")
-    print(f"Actions taken: {all_actions}")
-    
-    # Visualize Maze
-    print("Finished Maze:")
-    #finished_maze = m.visualize()
-    finished_maze = visualize_path(m, all_states)
-    for state in all_states:
-        finished_maze[state] = 5
-    plt.imshow(finished_maze)
-    plt.savefig(f"maze_finished_{appendix}.png")
-    # plt.show()
-    plt.close()
+    path_length = len(all_states)
+    print(f"Path Length: {path_length}")
+    # print(f"Path taken: {all_states}")
+    # print(f"Actions taken: {all_actions}")
+    # print("Finished Maze:")
+    visualize_path(m, all_states, f"maze_finished_{appendix}.png")
+
+    return final_score, path_length
 
 
 def train_single_maze(maze_size, path_num):
     basic_path_maze = gen_polygonal_path_maze(maze_size, path_num)
     obstacle_maze = add_random_obstacles(basic_path_maze)
-    print("Initial Maze:")
-    Maze(obstacle_maze).visualize()
     q = QLearning(100, 4)
     train(q, obstacle_maze, N_epoch=100)
 
 
-def train_generalized_maze(maze_size, path_num, train_size = 10, test_size = 3):
+def train_generalized_maze(maze_size, path_num, train_size = 10, test_size = 3, num_epochs = 100):
     basic_path_maze = gen_polygonal_path_maze(maze_size, path_num)
 
-    plt.imshow(basic_path_maze)
-    plt.savefig(f"maze_finished_initial.png")
-    plt.close()
+    maze_name = f"maze_initial_N={maze_size}_P={path_num}.png"
+    visualize_maze(basic_path_maze, maze_name)
 
     training_mazes = []
     for i in range(train_size):
@@ -257,7 +213,7 @@ def train_generalized_maze(maze_size, path_num, train_size = 10, test_size = 3):
 
     q = QLearning(maze_size**2, 4)
     for i, training_maze in enumerate(training_mazes):
-        train(q, training_maze, N_epoch=100, appendix=f"train_{i}")
+        train(q, training_maze, N_epoch=num_epochs, appendix=f"train_{i}", maze_name=maze_name)
     
     for i, testing_maze in enumerate(testing_mazes):
         print(f"Test maze {i}")
@@ -265,4 +221,4 @@ def train_generalized_maze(maze_size, path_num, train_size = 10, test_size = 3):
 
 
 if __name__ == '__main__':
-    train_generalized_maze(20, 2, train_size=10, test_size=10)
+    train_generalized_maze(20, 3, train_size=10, test_size=3, num_epochs=200)

@@ -103,12 +103,13 @@ class Maze:
             print(f"Moving to {a.loc}")
 
         self.mousy = a
+        size = self.env.shape[0]
         if self.has_won():
-            return 100   # reward for terminal
+            return 100 + size * 2 - 3   # reward for terminal
         elif self.agent_trape(a):
-            return -0.3 # penalty for trap
+            return -10 # penalty for trap
         else:
-            return -0.1 # penalty for transition
+            return -1 # penalty for transition
 
     def has_won(self):
         a = self.mousy
@@ -125,17 +126,18 @@ class Maze:
    
 from generate_maze import *
 
-def train(q, new_maze, N_epoch = 100, appendix="", maze_name="maze_with_obstacles.png"):
+def train(q, training_mazes, testing_mazes, N_epoch = 100, appendix="", maze_name="maze_with_obstacles.png"):
 
-    visualize_maze(Maze(new_maze), maze_name[:-4] + f"_with_obstacles.png")
+    # visualize_maze(Maze(new_maze), maze_name[:-4] + f"_with_obstacles.png")
 
-    training_process_scores = []
+    testing_scores = []
     training_scores = []
-    training_path_lengths = []
     recorded_epochs = []
 
-    for i in range(N_epoch):
+    for i in range(N_epoch + 1):
         final_score = 0
+        # randomly choose a maze in training mazes
+        new_maze = random.choice(training_mazes)
         m = Maze(new_maze)
         while not m.has_won():
             moves = m.compute_possible_moves()
@@ -154,22 +156,33 @@ def train(q, new_maze, N_epoch = 100, appendix="", maze_name="maze_with_obstacle
 
             q.update(st, at, rt, st1)
 
-        training_process_scores.append(final_score)
+        if i % 1 == 0:
+            recorded_epochs.append(i)
 
-        if i % 10 == 1:
-            print(f"Epoch {i-1}")
-            test_final_score, test_path_length = test(q, new_maze, appendix=f"epoch_{i-1}")
-            print(f"Test final score: {test_final_score}")
-            print(f"Test path length: {test_path_length}")
-            recorded_epochs.append(i-1)
-            training_scores.append(test_final_score)
-            training_path_lengths.append(test_path_length)
+            # test on training mazes
+            # print(f"Result on training maze:")
+            all_train_scores = []
+            for j, training_maze in enumerate(training_mazes):
+                train_score = test(q, training_maze, f"train_{j}")
+                all_train_scores.append(train_score)
+            
+            # test on testing mazes
+            # print(f"Result on testing mazes: {appendix}")
+            all_test_scores = []
+            for j, testing_maze in enumerate(testing_mazes):
+                # print(f"Test maze {j}")
+                test_score = test(q, testing_maze, appendix=f"test_{j}")
+                all_test_scores.append(test_score)
+            
+            average_train_score = np.mean(all_train_scores)
+            average_test_score = np.mean(all_test_scores)
 
-    # test on training maze
-    # print(f"Test on training maze: {appendix}")
-    # test(q, new_maze, appendix)
+            print(f"Epoch: {i}, Average train score: {average_train_score}, Average test score: {average_test_score}")
 
-    return recorded_epochs, training_process_scores, training_scores, training_path_lengths
+            training_scores.append(average_train_score)
+            testing_scores.append(average_test_score)
+
+    return recorded_epochs, training_scores, testing_scores
 
 
 def test(q, test_maze, appendix=""):
@@ -181,7 +194,7 @@ def test(q, test_maze, appendix=""):
     max_steps = maze_size * 2 - 2
     while not m.has_won() and max_steps > 0:
         max_steps -= 1
-        time.sleep(0.1)
+        # time.sleep(0.1)
         s = m.state_for_agent(m.mousy)
         all_states.append((s//maze_size, s%maze_size))
         possible_actions = m.compute_possible_moves()
@@ -197,69 +210,141 @@ def test(q, test_maze, appendix=""):
         final_score += m.do_a_move(m.all_acitons[a_idx])
         
     # Print results
-    print(f"Final Score: {final_score}")
-    path_length = len(all_states)
-    print(f"Path Length: {path_length}")
+    # print(f"Final Score: {final_score}")
+    # print(f"Path Length: {path_length}")
     # print(f"Path taken: {all_states}")
     # print(f"Actions taken: {all_actions}")
     # print("Finished Maze:")
-    visualize_path(m, all_states, f"maze_finished_{appendix}.png")
+    # visualize_path(m, all_states, f"maze_finished_{appendix}.png")
 
-    return final_score, path_length
+    return final_score
 
 
-def train_single_maze(maze_size, path_num):
+def train_single_maze(maze_size, path_num, obs_ratio):
     basic_path_maze = gen_polygonal_path_maze(maze_size, path_num)
-    obstacle_maze = add_random_obstacles(basic_path_maze)
+    obstacle_maze = add_random_obstacles(basic_path_maze, obs_ratio)
     q = QLearning(100, 4)
-    train(q, obstacle_maze, N_epoch=100)
+    train(q, [obstacle_maze], N_epoch=100)
 
 
-def train_generalized_maze(maze_size, path_num, train_size = 10, test_size = 3, num_epochs = 100):
+def train_generalized_maze(maze_size, path_num, obs_ratio, train_size = 10, test_size = 3, num_epochs = 100):
+    directory = f"N={maze_size}_P={path_num}_R={obs_ratio}_trainsize={train_size}_testsize={test_size}_epochs={num_epochs}"
+
+    # create directory if not exist
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
     basic_path_maze = gen_polygonal_path_maze(maze_size, path_num)
 
-    maze_name = f"maze_initial_N={maze_size}_P={path_num}.png"
+    maze_name = directory + "/maze_initial.png"
     visualize_maze(Maze(basic_path_maze), maze_name)
 
     training_mazes = []
     for i in range(train_size):
-        training_mazes.append(add_random_obstacles(basic_path_maze))
+        training_mazes.append(add_random_obstacles(basic_path_maze, obs_ratio))
 
     testing_mazes = []
     for i in range(test_size):
-        obstacle_maze_test = add_random_obstacles(basic_path_maze)
+        obstacle_maze_test = add_random_obstacles(basic_path_maze, obs_ratio)
         testing_mazes.append(obstacle_maze_test)
 
     q = QLearning(maze_size**2, 4)
-    for i, training_maze in enumerate(training_mazes):
-        recorded_epochs, training_process_scores, training_scores, training_path_lengths = train(q, training_maze, N_epoch=num_epochs, appendix=f"train_{i}", maze_name=maze_name)
-        # plot values in training process scores
-        plt.plot(recorded_epochs, training_process_scores)
-        plt.xlabel("Number of epochs")
-        plt.ylabel("Score")
-        plt.savefig(f"training_process_scores_{i}.png")
-        plt.close()
 
-        # plot values in testing scores
-        plt.plot(recorded_epochs, training_scores)
-        plt.xlabel("Number of epochs")
-        plt.ylabel("Training Score")
-        plt.savefig(f"training_scores_{i}.png")
-        plt.close()
+    recorded_epochs, training_scores, testing_scores = train(q, training_mazes, testing_mazes, N_epoch=num_epochs, appendix=f"train", maze_name=maze_name)
 
-        # plot values in testing path lengths
-        plt.plot(recorded_epochs, training_path_lengths)
-        plt.xlabel("Number of epochs")
-        plt.ylabel("Path Length")
-        plt.savefig(f"training_path_lengths_{i}.png")
-        plt.close()
+    # plot values in testing scores
+    plt.plot(recorded_epochs, training_scores)
+    plt.xlabel("Number of epochs")
+    plt.ylabel("Training Score")
+    plt.savefig(f"{directory}/training_scores.png")
+    plt.close()
 
+    plt.plot(recorded_epochs, testing_scores)
+    plt.xlabel("Number of epochs")
+    plt.ylabel("Testing Score")
+    plt.savefig(f"{directory}/testing_scores.png")
+    plt.close()
 
-    
-    for i, testing_maze in enumerate(testing_mazes):
-        print(f"Test maze {i}")
-        test(q, testing_maze, appendix=f"test_{i}")
-
+    # save them as npy files
+    np.save(f"{directory}/recorded_epochs.npy", recorded_epochs)
+    np.save(f"{directory}/training_scores.npy", training_scores)
+    np.save(f"{directory}/testing_scores.npy", testing_scores)
 
 if __name__ == '__main__':
-    train_generalized_maze(20, 1, train_size=1, test_size=3, num_epochs=300)
+    # Ns = [10, 15, 20]
+    # Ps = [1, 2, 3]
+    # Rs = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+    # training_size = 50
+    # testing_size = 20
+    # num_epochs = 500
+
+    # Ns = [20]
+    # Ps = [1, 2, 3, 4, 5]
+    # Rs = [0.3,0.4,0.5,0.6,0.7]
+    # training_size = 20
+    # testing_size = 10
+    # num_epochs = 300
+
+    # Ns = [5,10,15,20,25,30,35,40,45,50]
+    # Ps = [3]
+    # Rs = [0.5]
+    # training_size = 10
+    # testing_size = 10
+    # num_epochs = 1000
+
+    # Ns = [40]
+    # Ps = [3]
+    # Rs = [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]
+    # training_size = 10
+    # testing_size = 10
+    # num_epochs = 1000
+
+    # for N in Ns:
+    #     for P in Ps:
+    #         for R in Rs:
+    #             train_generalized_maze(N, P, R, training_size, testing_size, num_epochs)
+
+    # train_generalized_maze(20, 3, 0.5, train_size=50, test_size=20, num_epochs=500)
+
+    # load the npy files and plot them, with legend being different values of N
+    # training_size = 50
+    # testing_size = 20
+    # num_epochs = 500
+    # Ns = [10, 15, 20]
+    # Ps = [1, 2, 3]
+    # Rs = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+    # for N in [10, 15, 20]:
+    #     for P in [2]:
+    #         for R in [0.4]:
+    #             directory = f"N={N}_P={P}_R={R}_trainsize={training_size}_testsize={testing_size}_epochs={num_epochs}"
+    #             recorded_epochs = np.load(f"{directory}/recorded_epochs.npy")
+    #             training_scores = np.load(f"{directory}/training_scores.npy")
+    #             testing_scores = np.load(f"{directory}/testing_scores.npy")
+    #             plt.plot(recorded_epochs, testing_scores, label=f"N={N}_P={P}_R={R}")
+    # plt.xlabel("Number of epochs")
+    # plt.ylabel("Testing Score")
+    # plt.legend()
+    # plt.savefig(f"testing_scores_N_trainsize={training_size}_testsize={testing_size}_epochs={num_epochs}png")
+    # plt.close()
+
+    Ns = [40]
+    Ps = [3]
+    # Rs = [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]
+    Rs = [0.1,0.3,0.9]
+    training_size = 10
+    testing_size = 10
+    num_epochs = 1000
+    for N in Ns:
+        for P in Ps:
+            for R in Rs:
+                directory = f"N={N}_P={P}_R={R}_trainsize={training_size}_testsize={testing_size}_epochs={num_epochs}"
+                recorded_epochs = np.load(f"{directory}/recorded_epochs.npy")
+                training_scores = np.load(f"{directory}/training_scores.npy")
+                testing_scores = np.load(f"{directory}/testing_scores.npy")
+                plt.plot(recorded_epochs, testing_scores, label=f"N={N}_P={P}_R={R}")
+    plt.xlabel("Number of epochs")
+    plt.ylabel("Testing Score")
+    plt.ylim(-110,110)
+    plt.legend()
+    plt.savefig(f"testing_scores_Rs_trainsize={training_size}_testsize={testing_size}_epochs={num_epochs}png")
+    plt.close()

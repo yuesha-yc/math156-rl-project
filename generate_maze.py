@@ -3,18 +3,16 @@ import random
 import matplotlib.pyplot as plt 
 import pdb
 import time
+import os
+from visualize_path import visualize_maze
+from train import Maze
 
-# I want to generate maze
+# I want to generate NxN maze
 # 1. Start from left top corner
 # 2. End at right bottom corner
-
-# 3. Have a path from start to end
-# 4. Have a path from start to end that is not straight
-# 5. Have a path from start to end that is not straight and has a loop
-# 6. Have a path from start to end that is not straight and has a loop and has a branch
-
-# Finally, randomly place obstacles that is not on the path
-
+# 3. Have P paths from start to end
+# 4. Obstacles are randomly placed at regions not on paths, 
+# with obstacle to valid ratio being R from 0 to 1
 
 def get_valid_next(current,N):
     next_x = min(current[0]+1,N-1)
@@ -48,7 +46,7 @@ def gen_polygonal_path_maze(N,num_paths):
     return maze
 
 
-def add_random_obstacles(maze):
+def add_random_obstacles(maze, obstacle_ratio):
     N = maze.shape[0]
     # Create a copy of the maze to modify
     modified_maze = maze.copy()
@@ -58,27 +56,25 @@ def add_random_obstacles(maze):
             if modified_maze[i,j] == 1:
                 if i==N-1 and j==N-1:
                     continue
-                modified_maze[i,j] = random.choice([0,-1])
+                # modified_maze[i,j] = random.choice([0,-1])
+                if random.random() > obstacle_ratio:
+                    modified_maze[i,j] = 0
+                else:
+                    modified_maze[i,j] = -1
+                
     return modified_maze
 
 
-# def visualize_maze(maze):
-#     plt.imshow(maze)
-#     plt.show()
-#     # save to file
-#     plt.savefig("maze.png")
-#     plt.close()
-
-
 if __name__ == "__main__":
-    N = 10
-    maze = gen_polygonal_path_maze(N,1)
-    for i in range(3):
-        new_maze = maze.copy()
-        new_maze = add_obstacles(new_maze)
-        plt.imshow(new_maze)
-        # save to file
-        plt.savefig(f"maze_{i}.png")
-        plt.show()
-        plt.close()
-        # visualize_maze(maze)
+    # maze = gen_polygonal_path_maze_modified(10, 50)
+    # visualize_maze(Maze(maze), "maze.png")
+    directory = "maze_images"
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    for N in [5, 10, 15, 20, 25, 30]:
+        for P in [1,2,3,4,5]:
+            maze = gen_polygonal_path_maze(N,P)
+            for R in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
+                new_maze = maze.copy()
+                new_maze = add_random_obstacles(new_maze, R)
+                visualize_maze(Maze(new_maze), f"{directory}/maze_obstacles_N={N}_P={P}_R={R}.png")

@@ -127,7 +127,12 @@ from generate_maze import *
 
 def train(q, new_maze, N_epoch = 100, appendix="", maze_name="maze_with_obstacles.png"):
 
-    visualize_maze(new_maze, maze_name[:-4] + f"_with_obstacles.png")
+    visualize_maze(Maze(new_maze), maze_name[:-4] + f"_with_obstacles.png")
+
+    training_process_scores = []
+    training_scores = []
+    training_path_lengths = []
+    recorded_epochs = []
 
     for i in range(N_epoch):
         final_score = 0
@@ -148,11 +153,23 @@ def train(q, new_maze, N_epoch = 100, appendix="", maze_name="maze_with_obstacle
             st1 = m.state_for_agent(m.mousy)
 
             q.update(st, at, rt, st1)
-        # print(f"Final Score, epoch {i}: {final_score}")
+
+        training_process_scores.append(final_score)
+
+        if i % 10 == 1:
+            print(f"Epoch {i-1}")
+            test_final_score, test_path_length = test(q, new_maze, appendix=f"epoch_{i-1}")
+            print(f"Test final score: {test_final_score}")
+            print(f"Test path length: {test_path_length}")
+            recorded_epochs.append(i-1)
+            training_scores.append(test_final_score)
+            training_path_lengths.append(test_path_length)
 
     # test on training maze
-    print(f"Test on training maze: {appendix}")
-    test(q, new_maze, appendix)
+    # print(f"Test on training maze: {appendix}")
+    # test(q, new_maze, appendix)
+
+    return recorded_epochs, training_process_scores, training_scores, training_path_lengths
 
 
 def test(q, test_maze, appendix=""):
@@ -161,7 +178,9 @@ def test(q, test_maze, appendix=""):
     m = Maze(test_maze)
     all_states = [] # path taken in form of (i,j)
     all_actions = [] # arrows (0: up, 1: down, 2: right, 3: left)
-    while not m.has_won():
+    max_steps = maze_size * 2 - 2
+    while not m.has_won() and max_steps > 0:
+        max_steps -= 1
         time.sleep(0.1)
         s = m.state_for_agent(m.mousy)
         all_states.append((s//maze_size, s%maze_size))
@@ -200,7 +219,7 @@ def train_generalized_maze(maze_size, path_num, train_size = 10, test_size = 3, 
     basic_path_maze = gen_polygonal_path_maze(maze_size, path_num)
 
     maze_name = f"maze_initial_N={maze_size}_P={path_num}.png"
-    visualize_maze(basic_path_maze, maze_name)
+    visualize_maze(Maze(basic_path_maze), maze_name)
 
     training_mazes = []
     for i in range(train_size):
@@ -213,7 +232,29 @@ def train_generalized_maze(maze_size, path_num, train_size = 10, test_size = 3, 
 
     q = QLearning(maze_size**2, 4)
     for i, training_maze in enumerate(training_mazes):
-        train(q, training_maze, N_epoch=num_epochs, appendix=f"train_{i}", maze_name=maze_name)
+        recorded_epochs, training_process_scores, training_scores, training_path_lengths = train(q, training_maze, N_epoch=num_epochs, appendix=f"train_{i}", maze_name=maze_name)
+        # plot values in training process scores
+        plt.plot(recorded_epochs, training_process_scores)
+        plt.xlabel("Number of epochs")
+        plt.ylabel("Score")
+        plt.savefig(f"training_process_scores_{i}.png")
+        plt.close()
+
+        # plot values in testing scores
+        plt.plot(recorded_epochs, training_scores)
+        plt.xlabel("Number of epochs")
+        plt.ylabel("Training Score")
+        plt.savefig(f"training_scores_{i}.png")
+        plt.close()
+
+        # plot values in testing path lengths
+        plt.plot(recorded_epochs, training_path_lengths)
+        plt.xlabel("Number of epochs")
+        plt.ylabel("Path Length")
+        plt.savefig(f"training_path_lengths_{i}.png")
+        plt.close()
+
+
     
     for i, testing_maze in enumerate(testing_mazes):
         print(f"Test maze {i}")
@@ -221,4 +262,4 @@ def train_generalized_maze(maze_size, path_num, train_size = 10, test_size = 3, 
 
 
 if __name__ == '__main__':
-    train_generalized_maze(20, 3, train_size=10, test_size=3, num_epochs=200)
+    train_generalized_maze(20, 1, train_size=1, test_size=3, num_epochs=300)

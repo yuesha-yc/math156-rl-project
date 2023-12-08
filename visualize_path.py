@@ -5,15 +5,15 @@ def visualize_maze(maze, name):
     nr, nc = maze.env.shape  
     plt.figure(figsize=(nc, nr))  # size depends on matrix size
 
-    # add grid
+    # Add grid
     for i in range(nr + 1):
         plt.axhline(y=i - 0.5, color='black', linestyle='-', linewidth=1)
     for j in range(nc + 1):
         plt.axvline(x=j - 0.5, color='black', linestyle='-', linewidth=1)
 
-    plt.imshow(maze.env)  #, cmap='gray')  # grey tone
-    plt.text(0, 0, 'start', va='center', ha='center', color='red', fontsize=15)  # start label
-    plt.text(nc - 1, nr - 1, 'end', va='center', ha='center', color='red', fontsize=15)  # end label
+    plt.imshow(maze.env)  # Optionally, you can add a color map here
+    plt.text(0, 0, 'start', va='center', ha='center', color='red', fontsize=15)  # Start label
+    plt.text(nc - 1, nr - 1, 'end', va='center', ha='center', color='red', fontsize=15)  # End label
 
     plt.xticks([]), plt.yticks([])
     plt.savefig(name)
@@ -42,7 +42,6 @@ def visualize_path(maze, path, name):
     
     plt.xticks([]), plt.yticks([])
     plt.savefig(name)
-    # plt.show()
     plt.close()
 
 def get_arrow_direction(current_index, path, nr):    

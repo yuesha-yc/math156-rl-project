@@ -62,12 +62,12 @@ def add_random_obstacles(maze):
     return modified_maze
 
 
-def visualize_maze(maze):
-    plt.imshow(maze)
-    plt.show()
-    # save to file
-    plt.savefig("maze.png")
-    plt.close()
+# def visualize_maze(maze):
+#     plt.imshow(maze)
+#     plt.show()
+#     # save to file
+#     plt.savefig("maze.png")
+#     plt.close()
 
 
 if __name__ == "__main__":

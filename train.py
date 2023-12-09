@@ -1,12 +1,9 @@
-import numpy as np
+import math
 from collections import namedtuple
 import random
-import time
-from PIL import Image
-import pdb
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
+import numpy as np
 from visualize_path import visualize_maze, visualize_path
-import math
 
 """
 - states

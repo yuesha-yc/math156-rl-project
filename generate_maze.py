@@ -1,11 +1,5 @@
 import numpy as np
 import random
-import matplotlib.pyplot as plt 
-import pdb
-import time
-import os
-from visualize_path import visualize_maze
-from train import Maze
 
 # I want to generate NxN maze
 # 1. Start from left top corner

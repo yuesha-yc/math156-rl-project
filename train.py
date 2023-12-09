@@ -126,9 +126,7 @@ class Maze:
    
 from generate_maze import *
 
-def train(q, training_mazes, testing_mazes, N_epoch = 100, appendix="", maze_name="maze_with_obstacles.png"):
-
-    # visualize_maze(Maze(new_maze), maze_name[:-4] + f"_with_obstacles.png")
+def train(q, training_mazes, testing_mazes, N_epoch = 100, directory="", visualize=False):
 
     testing_scores = []
     training_scores = []
@@ -160,18 +158,16 @@ def train(q, training_mazes, testing_mazes, N_epoch = 100, appendix="", maze_nam
             recorded_epochs.append(i)
 
             # test on training mazes
-            # print(f"Result on training maze:")
             all_train_scores = []
             for j, training_maze in enumerate(training_mazes):
-                train_score = test(q, training_maze, f"train_{j}")
+                train_score = test(q, training_maze, directory, f"epoch_{i}_train_{j}", visualize and j == 0)
                 all_train_scores.append(train_score)
             
             # test on testing mazes
-            # print(f"Result on testing mazes: {appendix}")
             all_test_scores = []
             for j, testing_maze in enumerate(testing_mazes):
                 # print(f"Test maze {j}")
-                test_score = test(q, testing_maze, appendix=f"test_{j}")
+                test_score = test(q, testing_maze, directory, f"epoch_{i}_test_{j}", visualize and j == 0)
                 all_test_scores.append(test_score)
             
             average_train_score = np.mean(all_train_scores)
@@ -185,7 +181,7 @@ def train(q, training_mazes, testing_mazes, N_epoch = 100, appendix="", maze_nam
     return recorded_epochs, training_scores, testing_scores
 
 
-def test(q, test_maze, appendix=""):
+def test(q, test_maze, directory, appendix, visualize):
     maze_size = test_maze.shape[0]
     final_score = 0
     m = Maze(test_maze)
@@ -208,15 +204,9 @@ def test(q, test_maze, appendix=""):
         a_idx = np.argmax(q.q[s])
         all_actions.append(a_idx)
         final_score += m.do_a_move(m.all_acitons[a_idx])
-        
-    # Print results
-    # print(f"Final Score: {final_score}")
-    # print(f"Path Length: {path_length}")
-    # print(f"Path taken: {all_states}")
-    # print(f"Actions taken: {all_actions}")
-    # print("Finished Maze:")
-    # visualize_path(m, all_states, f"maze_finished_{appendix}.png")
-
+    
+    if visualize:
+        visualize_path(m, all_states, f"{directory}/maze_path_{appendix}.png")
     return final_score
 
 
@@ -227,7 +217,7 @@ def train_single_maze(maze_size, path_num, obs_ratio):
     train(q, [obstacle_maze], N_epoch=100)
 
 
-def train_generalized_maze(maze_size, path_num, obs_ratio, train_size = 10, test_size = 3, num_epochs = 100):
+def train_generalized_maze(maze_size, path_num, obs_ratio, train_size = 10, test_size = 3, num_epochs = 100, visualize=False):
     directory = f"N={maze_size}_P={path_num}_R={obs_ratio}_trainsize={train_size}_testsize={test_size}_epochs={num_epochs}"
 
     # create directory if not exist
@@ -250,7 +240,7 @@ def train_generalized_maze(maze_size, path_num, obs_ratio, train_size = 10, test
 
     q = QLearning(maze_size**2, 4)
 
-    recorded_epochs, training_scores, testing_scores = train(q, training_mazes, testing_mazes, N_epoch=num_epochs, appendix=f"train", maze_name=maze_name)
+    recorded_epochs, training_scores, testing_scores = train(q, training_mazes, testing_mazes, N_epoch=num_epochs, directory=directory, visualize=visualize)
 
     # plot values in testing scores
     plt.plot(recorded_epochs, training_scores)
@@ -271,6 +261,9 @@ def train_generalized_maze(maze_size, path_num, obs_ratio, train_size = 10, test
     np.save(f"{directory}/testing_scores.npy", testing_scores)
 
 if __name__ == '__main__':
+
+    # train_generalized_maze(10, 1, 0.5, train_size=5, test_size=5, num_epochs=500, visualize=True)
+
     # Ns = [10, 15, 20]
     # Ps = [1, 2, 3]
     # Rs = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
@@ -304,7 +297,6 @@ if __name__ == '__main__':
     #         for R in Rs:
     #             train_generalized_maze(N, P, R, training_size, testing_size, num_epochs)
 
-    # train_generalized_maze(20, 3, 0.5, train_size=50, test_size=20, num_epochs=500)
 
     # load the npy files and plot them, with legend being different values of N
     # training_size = 50
@@ -327,24 +319,24 @@ if __name__ == '__main__':
     # plt.savefig(f"testing_scores_N_trainsize={training_size}_testsize={testing_size}_epochs={num_epochs}png")
     # plt.close()
 
-    Ns = [40]
-    Ps = [3]
-    # Rs = [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]
-    Rs = [0.1,0.3,0.9]
-    training_size = 10
-    testing_size = 10
-    num_epochs = 1000
-    for N in Ns:
-        for P in Ps:
-            for R in Rs:
-                directory = f"N={N}_P={P}_R={R}_trainsize={training_size}_testsize={testing_size}_epochs={num_epochs}"
-                recorded_epochs = np.load(f"{directory}/recorded_epochs.npy")
-                training_scores = np.load(f"{directory}/training_scores.npy")
-                testing_scores = np.load(f"{directory}/testing_scores.npy")
-                plt.plot(recorded_epochs, testing_scores, label=f"N={N}_P={P}_R={R}")
-    plt.xlabel("Number of epochs")
-    plt.ylabel("Testing Score")
-    plt.ylim(-110,110)
-    plt.legend()
-    plt.savefig(f"testing_scores_Rs_trainsize={training_size}_testsize={testing_size}_epochs={num_epochs}png")
-    plt.close()
+    # Ns = [40]
+    # Ps = [3]
+    # # Rs = [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]
+    # Rs = [0.1,0.3,0.9]
+    # training_size = 10
+    # testing_size = 10
+    # num_epochs = 1000
+    # for N in Ns:
+    #     for P in Ps:
+    #         for R in Rs:
+    #             directory = f"N={N}_P={P}_R={R}_trainsize={training_size}_testsize={testing_size}_epochs={num_epochs}"
+    #             recorded_epochs = np.load(f"{directory}/recorded_epochs.npy")
+    #             training_scores = np.load(f"{directory}/training_scores.npy")
+    #             testing_scores = np.load(f"{directory}/testing_scores.npy")
+    #             plt.plot(recorded_epochs, testing_scores, label=f"N={N}_P={P}_R={R}")
+    # plt.xlabel("Number of epochs")
+    # plt.ylabel("Testing Score")
+    # plt.ylim(-110,110)
+    # plt.legend()
+    # plt.savefig(f"testing_scores_Rs_trainsize={training_size}_testsize={testing_size}_epochs={num_epochs}png")
+    # plt.close()

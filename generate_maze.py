@@ -68,13 +68,13 @@ def add_random_obstacles(maze, obstacle_ratio):
 if __name__ == "__main__":
     # maze = gen_polygonal_path_maze_modified(10, 50)
     # visualize_maze(Maze(maze), "maze.png")
-    directory = "maze_images"
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    for N in [5, 10, 15, 20, 25, 30]:
-        for P in [1,2,3,4,5]:
-            maze = gen_polygonal_path_maze(N,P)
-            for R in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
-                new_maze = maze.copy()
-                new_maze = add_random_obstacles(new_maze, R)
-                visualize_maze(Maze(new_maze), f"{directory}/maze_obstacles_N={N}_P={P}_R={R}.png")
+    # directory = "maze_images"
+    # if not os.path.exists(directory):
+    #     os.makedirs(directory)
+    # for N in [5, 10, 15, 20, 25, 30]:
+    #     for P in [1,2,3,4,5]:
+    #         maze = gen_polygonal_path_maze(N,P)
+    #         for R in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
+    #             new_maze = maze.copy()
+    #             new_maze = add_random_obstacles(new_maze, R)
+    #             visualize_maze(Maze(new_maze), f"{directory}/maze_obstacles_N={N}_P={P}_R={R}.png")

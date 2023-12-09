@@ -3,6 +3,7 @@ from collections import namedtuple
 import random
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 from visualize_path import visualize_maze, visualize_path
 from generate_maze import gen_polygonal_path_maze, add_random_obstacles
 
